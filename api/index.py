@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 # 載入 .env 環境變數
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
-from .models import Job, ChatRequest, ChatResponse
+from .models import Job, JobCreate, JobUpdate, ChatRequest, ChatResponse
 from .services import MockChatService
 
 # 設定 Logging
@@ -41,6 +41,14 @@ if url and key and key != "your-anon-key":
 else:
     logger.warning("Supabase URL or Key is missing/default.")
     supabase = None
+
+# Admin Secret Key
+ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", "tchat-admin-2026")
+
+async def verify_admin_key(x_admin_key: str = Header(None)):
+    if x_admin_key != ADMIN_SECRET_KEY:
+        raise HTTPException(status_code=401, detail="Invalid Admin Key")
+    return x_admin_key
 
 # Mock data for Demo mode
 MOCK_JOBS = [
@@ -91,6 +99,44 @@ async def chat(request: ChatRequest):
     
     reply_text, filtered_jobs = MockChatService.get_response(request.messages, request.tab, all_jobs)
     return ChatResponse(text=reply_text, filtered_jobs=filtered_jobs)
+
+@app.post("/api/admin/jobs", response_model=Job)
+async def create_job(job: JobCreate, admin_key: str = Depends(verify_admin_key)):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Supabase not connected")
+    try:
+        response = supabase.table("jobs").insert(job.dict()).execute()
+        return Job(id=str(response.data[0]["id"]), **response.data[0])
+    except Exception as e:
+        logger.error(f"Create job error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/admin/jobs/{job_id}", response_model=Job)
+async def update_job(job_id: str, job: JobUpdate, admin_key: str = Depends(verify_admin_key)):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Supabase not connected")
+    try:
+        update_data = {k: v for k, v in job.dict().items() if v is not None}
+        response = supabase.table("jobs").update(update_data).eq("id", job_id).execute()
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Job not found")
+        return Job(id=str(response.data[0]["id"]), **response.data[0])
+    except Exception as e:
+        logger.error(f"Update job error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/admin/jobs/{job_id}")
+async def delete_job(job_id: str, admin_key: str = Depends(verify_admin_key)):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Supabase not connected")
+    try:
+        response = supabase.table("jobs").delete().eq("id", job_id).execute()
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Job not found")
+        return {"status": "success", "deleted": job_id}
+    except Exception as e:
+        logger.error(f"Delete job error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/health")
 async def health():
