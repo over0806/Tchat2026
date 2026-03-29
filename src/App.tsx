@@ -205,7 +205,7 @@ export default function App() {
               )}
             >
               <img
-                src="public/tab-intro.png"
+                src="/tab-intro.png"
                 alt="展場簡介"
                 className="w-7 h-7 mr-2 object-contain"
                 style={activeTab === 'intro'
@@ -227,7 +227,7 @@ export default function App() {
               )}
             >
               <img
-                src="public/tab-jobs.png"
+                src="/tab-jobs.png"
                 alt="職缺媒合"
                 className="w-7 h-7 mr-2 object-contain"
                 style={activeTab === 'match'
@@ -242,7 +242,7 @@ export default function App() {
           <div className="absolute left-1/2 -translate-x-1/2 z-10">
             <div className="bg-gray-800 rounded-full p-1 border-2 border-amber-gold/50 shadow-lg">
               <img
-                src="public/Nautilus.png"
+                src="/Nautilus.png"
                 alt="Nautilus Shell"
                 className="w-10 h-10 object-contain scale-110"
               />
@@ -335,7 +335,7 @@ export default function App() {
 
                 <div className="rounded-xl overflow-hidden shadow-2xl border border-white/10">
                   <img
-                    src="public/pic01.png"
+                    src="/pic01.png"
                     alt="Project Nautilus Exhibit"
                     className="w-full h-auto object-cover"
                     referrerPolicy="no-referrer"
